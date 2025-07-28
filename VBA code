@@ -1,0 +1,226 @@
+Sub PaymentPeriod()
+Dim ws As Worksheet
+Dim WB As Workbook
+    Set WB = Application.ThisWorkbook
+Dim LoanArr() As Variant, PayconArr() As Variant, IntArr() As Variant, LoanConArr() As Variant, tempRow() As Variant, _
+      CalTable() As Variant
+Dim rowList As Object
+Dim loanAmt As Double, AI As Double, installMent As Double
+Dim lastDate As Date, ReportAsOf As Date
+Dim LoanAcc As String, LoanName As String, LoanType As String
+Dim i As Integer, ii As Integer, iii As Integer, r As Integer, PeriodM As Integer
+
+Set rowList = CreateObject("System.Collections.ArrayList")
+
+On Error GoTo ErrHandler
+    Application.DisplayAlerts = False
+
+'--------------------------------------------------------------Collect Input--------------------------------------------------------------
+
+InputAsofDate ReportAsOf
+InputPeriod PeriodM
+
+'----------------------------------------------------------Collect All Info to Array------------------------------------------------------
+
+LoanArr = Worksheets("Paycon 60 Months").Range("A6") _
+                .Resize(Worksheets("Paycon 60 Months").UsedRange.Rows.count - 1, _
+                Worksheets("Paycon 60 Months").UsedRange.Columns.count).Value
+PayconArr = Worksheets("paycon").Range("A2") _
+                .Resize(Worksheets("paycon").UsedRange.Rows.count - 1, _
+                Worksheets("paycon").UsedRange.Columns.count).Value
+IntArr = Worksheets("AFinterestrate").Range("A2") _
+                .Resize(Worksheets("AFinterestrate").UsedRange.Rows.count - 1, _
+                Worksheets("AFinterestrate").UsedRange.Columns.count).Value
+
+
+'===================================Start loop=====================================
+
+'------------------------------------------------------Collect Detail Loan with "Y"------------------------------------------------------
+For i = 1 To UBound(LoanArr, 1)
+    If Trim(UCase(LoanArr(i, 1))) = "Y" Then
+        LoanAcc = Trim(LoanArr(i, 2))
+        LoanName = Trim(LoanArr(i, 3))
+        LoanType = Trim(LoanArr(i, 4))
+        loanAmt = LoanArr(i, 5)
+        AI = LoanArr(i, 6)
+        lastDate = LoanArr(i, 7)
+            
+'-----------------------------------------------------Collect Payment Condition--------------------------------------------------
+'Paycon by LoanAcc loop ii
+
+        For ii = 1 To UBound(PayconArr, 1)
+            If Trim(PayconArr(ii, 14)) = LoanAcc Then
+            
+'Collect to tempRow loop iii
+                ReDim tempRow(1 To 20)
+                For iii = 1 To 18
+                    tempRow(iii) = PayconArr(ii, iii)
+                Next iii
+'Done iii
+        
+'Cal Actual Rate loop iii
+                If PayconArr(ii, 4) = "FLOAT" Then
+                    For iii = 1 To UBound(IntArr, 1)
+                        If PayconArr(ii, 5) = IntArr(iii, 3) Then
+                            tempRow(19) = IntArr(iii, 4)
+                            Exit For
+                        End If
+                    Next iii
+'Done iii
+                Else
+                tempRow(19) = 0
+                End If
+                tempRow(20) = PayconArr(ii, 7) + tempRow(19)
+                
+                rowList.Add tempRow
+                
+            End If
+        Next ii
+'Done ii
+            
+'Covert ArrayList 2D Array loop ii, iii
+        If rowList.count > 0 Then
+        ReDim LoanConArr(1 To rowList.count, 1 To 20)
+        For ii = 0 To rowList.count - 1
+            For iii = 1 To 20
+                LoanConArr(ii + 1, iii) = rowList(ii)(iii)
+            Next iii
+        Next ii
+        Else
+            MsgBox LoanAcc & " : No Payment Condition"
+            GoTo SkipLoanAcc
+        End If
+'Done ii,iii
+        
+    Erase tempRow
+    rowList.Clear
+
+'==============================Cal Payment Condition to rowList=============================
+        
+        CalPaycon ReportAsOf, lastDate, PeriodM, loanAmt, AI, LoanConArr, rowList
+        
+'-------------------------------------------------------------rowList to CalTable------------------------------------------------------
+'Covert ArrayList 2D Array loop ii, iii
+        If rowList.count > 0 Then
+        ReDim CalTable(1 To rowList.count, 1 To 12)
+        For ii = 0 To rowList.count - 1
+            For iii = 1 To 7
+                CalTable(ii + 1, iii) = rowList(ii)(iii)
+            Next iii
+            For iii = 8 To 12
+                CalTable(ii + 1, iii) = Round(rowList(ii)(iii), 2)
+            Next iii
+        Next ii
+'Done ii,iii
+
+'=================================Create Sheet================================
+
+        Set ws = Sheets.Add(after:=Sheets(Worksheets.count))
+        ws.Name = LoanAcc
+
+'----------------------------------------------------------Print Detail Loan-----------------------------------------------------
+        With Worksheets(LoanAcc)
+        
+        .Cells(1, 1).Value = LoanAcc
+        .Cells(1, 3).Value = LoanName
+        
+        .Cells(2, 1).Value = "Loan Type"
+        .Cells(2, 3).Value = LoanType
+        
+        .Cells(3, 1).Value = "Outstanding Balance"
+        .Cells(3, 3).Value = loanAmt
+        
+        .Cells(4, 1).Value = "Accrued Interest"
+        .Cells(4, 3).Value = AI
+        
+        .Cells(5, 1).Value = "Contact End"
+        .Cells(5, 3).Value = lastDate
+        
+        .Range("c3").NumberFormat = "#,##0.00"
+        .Range("c4").NumberFormat = "#,##0.00"
+        .Range("c5").NumberFormat = "dd/mm/yyyy"
+        
+        End With
+
+'---------------------------------------------------------Title Condition-----------------------------------------------------------
+'r = Count Row of Detail
+        r = 5
+        Call TitleCondition(LoanAcc, r + 1)
+        
+'-----------------------------------------------------Print Paycon by LoanAcc---------------------------------------------------
+
+        With Worksheets(LoanAcc).Range("a7").Resize(UBound(LoanConArr, 1), UBound(LoanConArr, 2))
+        .Value = LoanConArr
+        .Columns(1).NumberFormat = "@"
+        .Columns(2).NumberFormat = "@"
+        .Columns(3).NumberFormat = "@"
+        .Columns(4).NumberFormat = "@"
+        .Columns(5).NumberFormat = "@"
+        .Columns(6).NumberFormat = "#,##0.00"
+        .Columns(7).NumberFormat = "#,##0.00"
+        .Columns(8).NumberFormat = "#,##0"
+        .Columns(9).NumberFormat = "#,##0.00"
+        .Columns(10).NumberFormat = "dd/mm/yyyy"
+        .Columns(11).NumberFormat = "dd/mm/yyyy"
+        .Columns(12).NumberFormat = "dd/mm/yyyy"
+        .Columns(13).NumberFormat = "@"
+        .Columns(14).NumberFormat = "@"
+        .Columns(15).NumberFormat = "@"
+        .Columns(16).NumberFormat = "@"
+        .Columns(17).NumberFormat = "@"
+        .Columns(18).NumberFormat = "@"
+        .Columns(19).NumberFormat = "#,##0.00"
+        .Columns(20).NumberFormat = "#,##0.00"
+        End With
+        End If
+        
+'---------------------------------------------------------Title Payment-----------------------------------------------------------
+
+       Call TitlePayment(LoanAcc, r + UBound(LoanConArr, 1) + 2)
+       
+'--------------------------------------------------Print Paycon by LoanAcc--------------------------------------------------
+ 
+        With Worksheets(LoanAcc).Range("A" & r + UBound(LoanConArr, 1) + 3).Resize(UBound(CalTable, 1), UBound(CalTable, 2))
+        .Value = CalTable
+        .Columns(1).NumberFormat = "#,##0"
+        .Columns(2).NumberFormat = "dd/mm/yyyy"
+        .Columns(3).NumberFormat = "@"
+        .Columns(4).NumberFormat = "@"
+        .Columns(5).NumberFormat = "#,##0.00"
+        .Columns(6).NumberFormat = "#,##0.00"
+        .Columns(7).NumberFormat = "@"
+        .Columns(8).NumberFormat = "#,##0.00"
+        .Columns(9).NumberFormat = "#,##0.00"
+        .Columns(10).NumberFormat = "#,##0.00"
+        .Columns(11).NumberFormat = "#,##0.00"
+        .Columns(12).NumberFormat = "#,##0.00"
+        End With
+        
+        Sheets(LoanAcc).UsedRange.Columns.AutoFit
+        Worksheets(LoanAcc).Range("A:A").ColumnWidth = 10
+        Worksheets(LoanAcc).Range("c:c").ColumnWidth = 15
+        Worksheets(LoanAcc).Range("p:p").ColumnWidth = 10
+    
+'-------------------------------------------------------------Clear-------------------------------------------------------------
+SkipLoanAcc:
+
+        Erase LoanConArr
+        Erase CalTable
+        Erase tempRow
+        rowList.Clear
+        
+        End If
+        
+    Next i
+
+'=================================End Loop================================
+
+ErrHandler:
+'    If Err.Number <> 13 Then
+'    MsgBox Err.Number & Err.Description, vbCritical, "Error message from System !!!"
+'    End If
+Application.DisplayAlerts = True
+
+End Sub
+
+
