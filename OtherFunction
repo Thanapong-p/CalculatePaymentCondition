@@ -1,0 +1,107 @@
+Public Sub InputAsofDate(ByRef ReportAsOf As Date)
+
+Dim TheString As String
+
+TheString = Application.InputBox("Report as of :")
+
+If IsDate(TheString) Then
+    ReportAsOf = DateValue(TheString)
+Else
+    MsgBox "Invalid date"
+    Exit Sub
+End If
+
+End Sub
+
+Public Sub InputPeriod(ByRef PeriodM As Integer)
+
+Dim TheNumber As Integer
+
+TheNumber = Application.InputBox("Forecast period (months) :")
+
+If IsNumeric(TheNumber) Then
+    If TheNumber > 500 Then
+        MsgBox "Limit 500 Months"
+        Exit Sub
+    Else
+        PeriodM = TheNumber
+    End If
+Else
+    MsgBox "Only Integer!!"
+    Exit Sub
+End If
+
+End Sub
+
+Function calInterest(actRate As Double, amtOS As Double, AsofDate As Date) As Double
+Dim daycal As Integer
+
+daycal = Day(GetEoMonth(AsofDate))
+
+    calInterest = Round(amtOS * actRate * daycal / 36500, 2)
+    
+End Function
+
+Function GetEoMonth(dt As Date, Optional offset As Integer = 0) As Date
+    GetEoMonth = DateSerial(Year(dt), Month(dt) + offset + 1, 0)
+End Function
+
+Function FirstOfMonth(d As Date, Optional offset As Integer = 0) As Date
+    FirstOfMonth = DateSerial(Year(d), Month(d) + offset + 1, 1)
+End Function
+
+Public Sub TitlePayment(sheetName As String, intRow As Integer)
+    Worksheets(sheetName).Cells(intRow, 1).Value = "No."
+    Worksheets(sheetName).Cells(intRow, 2).Value = "Date"
+    Worksheets(sheetName).Cells(intRow, 3).Value = "Int-group"
+    Worksheets(sheetName).Cells(intRow, 4).Value = "Int-type"
+    Worksheets(sheetName).Cells(intRow, 5).Value = "Actual rate"
+    Worksheets(sheetName).Cells(intRow, 6).Value = "Installment amt"
+    Worksheets(sheetName).Cells(intRow, 7).Value = "Condition"
+    Worksheets(sheetName).Cells(intRow, 8).Value = "Outstanding Balance"
+    Worksheets(sheetName).Cells(intRow, 9).Value = "Total Accrued Int"
+    Worksheets(sheetName).Cells(intRow, 10).Value = "Principal Paid"
+    Worksheets(sheetName).Cells(intRow, 11).Value = "Interest Paid"
+    Worksheets(sheetName).Cells(intRow, 12).Value = "Accrued Interest Paid"
+End Sub
+
+Public Sub TitleCondition(sheetName As String, intRow As Integer)
+    Worksheets(sheetName).Cells(intRow, 1).Value = "ID"
+    Worksheets(sheetName).Cells(intRow, 2).Value = "Loan id"
+    Worksheets(sheetName).Cells(intRow, 3).Value = "Condition"
+    Worksheets(sheetName).Cells(intRow, 4).Value = "Interest_group"
+    Worksheets(sheetName).Cells(intRow, 5).Value = "Interest_type"
+    Worksheets(sheetName).Cells(intRow, 6).Value = "Fixed_rate"
+    Worksheets(sheetName).Cells(intRow, 7).Value = "Margin"
+    Worksheets(sheetName).Cells(intRow, 8).Value = "Period_due"
+    Worksheets(sheetName).Cells(intRow, 9).Value = "Payment_condition_amount"
+    Worksheets(sheetName).Cells(intRow, 10).Value = "Start_date"
+    Worksheets(sheetName).Cells(intRow, 11).Value = "Create_date"
+    Worksheets(sheetName).Cells(intRow, 12).Value = "Update_date"
+    Worksheets(sheetName).Cells(intRow, 13).Value = "Update_by"
+    Worksheets(sheetName).Cells(intRow, 14).Value = "Loan acc"
+    Worksheets(sheetName).Cells(intRow, 15).Value = "CIF No."
+    Worksheets(sheetName).Cells(intRow, 16).Value = "Name"
+    Worksheets(sheetName).Cells(intRow, 17).Value = "Payment type"
+    Worksheets(sheetName).Cells(intRow, 18).Value = "Status"
+    Worksheets(sheetName).Cells(intRow, 19).Value = "Rate"
+    Worksheets(sheetName).Cells(intRow, 20).Value = "Actual Rate"
+End Sub
+
+Public Sub TitleReport(sheetName As String, intRow As Integer, AsofDate As Date, intMonth As Integer)
+
+Dim ii As Integer
+
+Worksheets(sheetName).Cells(intRow, 1).Value = "Loan account"
+Worksheets(sheetName).Cells(intRow, 2).Value = "Loan Name"
+Worksheets(sheetName).Cells(intRow, 3).Value = "Loan type"
+Worksheets(sheetName).Cells(intRow, 4).Value = "Outstanding Balance"
+Worksheets(sheetName).Cells(intRow, 5).Value = "Accrued Interest"
+Worksheets(sheetName).Cells(intRow, 6).Value = "Contact End"
+Worksheets(sheetName).Cells(intRow, 7).Value = "Interest Type"
+For ii = 1 To intMonth
+    Worksheets(sheetName).Cells(intRow, ii + 7).Value = Format(Application.EoMonth(AsofDate, ii), "dd/mm/yyyy")
+Next ii
+'Worksheets(sheetName).Cells(intRow, ii + 7).Value = "Over m" & intMonth
+
+End Sub
