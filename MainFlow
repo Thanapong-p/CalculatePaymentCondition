@@ -22,15 +22,15 @@ InputPeriod PeriodM
 
 '----------------------------------------------------------Collect All Info to Array------------------------------------------------------
 
-LoanArr = Worksheets("Paycon 60 Months").Range("A6") _
-                .Resize(Worksheets("Paycon 60 Months").UsedRange.Rows.count - 1, _
-                Worksheets("Paycon 60 Months").UsedRange.Columns.count).Value
+LoanArr = Worksheets("PayconLoan").Range("A6") _
+                .Resize(Worksheets("PayconLoan").UsedRange.Rows.count - 1, _
+                Worksheets("PayconLoan").UsedRange.Columns.count).Value
 PayconArr = Worksheets("paycon").Range("A2") _
                 .Resize(Worksheets("paycon").UsedRange.Rows.count - 1, _
                 Worksheets("paycon").UsedRange.Columns.count).Value
-IntArr = Worksheets("AFinterestrate").Range("A2") _
-                .Resize(Worksheets("AFinterestrate").UsedRange.Rows.count - 1, _
-                Worksheets("AFinterestrate").UsedRange.Columns.count).Value
+IntArr = Worksheets("interestrate").Range("A2") _
+                .Resize(Worksheets("interestrate").UsedRange.Rows.count - 1, _
+                Worksheets("interestrate").UsedRange.Columns.count).Value
 
 
 '===================================Start loop=====================================
