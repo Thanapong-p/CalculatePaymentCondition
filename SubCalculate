@@ -1,0 +1,164 @@
+Public Sub CalPaycon(ReportAsOf As Date, lastDate As Date, PeriodM As Integer, ByVal loanAmt As Double, ByVal AI As Double, LoanConArr As Variant, _
+                ByRef rowList As Object)
+
+Dim ii As Integer, iii As Integer
+Dim AsofDate As Date
+Dim actRate As Double, installMent As Double, calInt As Double
+Dim tempRow() As Variant
+
+iii = 1
+ReDim tempRow(1 To 12)
+        
+'Run Number loop ii
+        For ii = 1 To PeriodM
+    
+            tempRow(1) = ii
+            tempRow(2) = GetEoMonth(ReportAsOf, ii)
+            AsofDate = FirstOfMonth(ReportAsOf, ii - 1)
+            
+'Condition "Expired"
+
+                If lastDate <= GetEoMonth(ReportAsOf, ii) Then
+                    tempRow(3) = "FLOAT"
+                    tempRow(4) = "AFMLR"
+                    tempRow(5) = LoanConArr(iii, 20) 'actual rate
+                    tempRow(6) = 999999999
+                    tempRow(7) = "I+P"
+                    tempRow(8) = 0
+                    tempRow(9) = 0
+                    tempRow(10) = loanAmt
+                    tempRow(11) = calInt
+                    tempRow(12) = AI
+                    rowList.Add tempRow
+                    GoTo nextLoanacc
+                End If
+
+            
+'Cal Payment Condition at AsofDate loop iii
+                If iii = UBound(LoanConArr, 1) Then
+                    GoTo GoCal
+                End If
+                
+                If LoanConArr(iii, 10) <= AsofDate And AsofDate < LoanConArr(iii + 1, 10) Then
+                    GoTo GoCal
+                Else
+                    Do While AsofDate >= LoanConArr(iii + 1, 10)
+                        iii = iii + 1
+                        If iii = UBound(LoanConArr, 1) Then
+                            GoTo GoCal
+                        End If
+                    Loop
+               End If
+                
+GoCal:
+
+                tempRow(3) = LoanConArr(iii, 4) 'int-group
+                tempRow(4) = LoanConArr(iii, 5) 'int-type
+                tempRow(5) = LoanConArr(iii, 20) 'actual rate
+                tempRow(6) = LoanConArr(iii, 9) 'Installment
+                tempRow(7) = LoanConArr(iii, 17) 'condition type
+                'tempRow(8) = loanAmt
+                'tempRow(9) = AI
+
+'Cal int
+                installMent = LoanConArr(iii, 9)
+                actRate = LoanConArr(iii, 20)
+                calInt = calInterest(actRate, loanAmt, AsofDate)
+            
+'Condition "P"
+                If LoanConArr(iii, 17) = "P" Then
+                    tempRow(11) = 0
+                    tempRow(12) = 0
+                    If installMent >= loanAmt Then
+                        tempRow(10) = loanAmt
+                        loanAmt = 0
+                        tempRow(8) = loanAmt
+                        tempRow(9) = AI 'á»Å¡æ
+                        rowList.Add tempRow
+                        GoTo nextLoanacc
+                    End If
+                    tempRow(10) = installMent
+                    loanAmt = loanAmt - LoanConArr(iii, 9)
+                    GoTo nextTrans
+                End If
+          
+'Condition "I"
+                If LoanConArr(iii, 17) = "I" Then
+                    tempRow(10) = 0
+                    If installMent = 0 Then
+                        tempRow(11) = calInt
+                        tempRow(12) = 0
+                    Else
+                        If installMent > calInt Then
+                            tempRow(11) = calInt
+                            If AI > installMent - calInt Then
+                                tempRow(12) = installMent - calInt
+                                AI = AI - (installMent - calInt)
+                            Else
+                                tempRow(12) = AI
+                                tempRow(10) = installMent - calInt - AI
+                                loanAmt = loanAmt - (installMent - calInt - AI)
+                                AI = 0
+                            End If
+                        Else
+                            tempRow(11) = installMent
+                            AI = AI + (calInt - installMent)
+                            tempRow(12) = 0
+                        End If
+                    End If
+
+'Condition "P+I"
+                Else
+                    tempRow(11) = calInt
+                    If installMent - calInt >= loanAmt Then
+                        tempRow(10) = loanAmt
+                        If installMent - (loanAmt - calInt) >= AI Then
+                            tempRow(12) = AI
+                            AI = 0
+                        Else
+                            tempRow(12) = installMent - loanAmt - calInt
+                            AI = AI - installMent + loanAmt - calInt
+                        End If
+                        loanAmt = 0
+                        GoTo nextTrans
+                    End If
+                    tempRow(12) = 0
+                    tempRow(10) = installMent - calInt
+                    loanAmt = loanAmt - (installMent - calInt)
+
+                End If
+                
+'---------------------------------------------------End Cal Payment------------------------------------------------------
+nextTrans:
+        
+        tempRow(8) = loanAmt
+        tempRow(9) = AI
+                        
+        rowList.Add tempRow
+        
+        If loanAmt = 0 And AI = 0 Then
+            GoTo nextLoanacc
+        End If
+        
+        Next ii
+        
+nextLoanacc:
+
+
+End Sub
+
+
+Public Sub InputAsofDate(ByRef ReportAsOf As Date)
+
+Dim TheString As String
+
+TheString = Application.InputBox("Report as of :")
+
+If IsDate(TheString) Then
+    ReportAsOf = DateValue(TheString)
+Else
+    MsgBox "Invalid date"
+    Exit Sub
+End If
+
+End Sub
